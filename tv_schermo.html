@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍤 Torneo Frittogether — TV</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #0a0a0a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: white;
+}
+
+/* HEADER */
+.tv-header {
+  background: #1c1c1e;
+  padding: 10px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #2a2a2a;
+  flex-shrink: 0;
+  height: 7vh;
+}
+.tv-title { font-size: 2vh; font-weight: 700; color: #FFD97D; }
+.tv-phase { font-size: 1.5vh; color: #8e8e93; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+.live-dot { width:8px; height:8px; background:#34c759; border-radius:50%; display:inline-block; margin-right:6px; animation:pulse 1.5s infinite; }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-text { font-size: 1.3vh; color: #444; }
+
+/* MAIN — 16:9 horizontal layout */
+.tv-main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: 86vh;
+}
+
+/* LEFT: home team */
+.team-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+  padding: 2vh 3vw;
+}
+
+.team-circle {
+  width: 16vw;
+  height: 16vw;
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 50%;
+  border: 0.6vw solid rgba(255,255,255,0.12);
+}
+
+.team-name {
+  font-size: 3.8vw;
+  font-weight: 900;
+  text-align: center;
+  color: white;
+  line-height: 1.15;
+  text-shadow: 0 2px 12px rgba(0,0,0,.5);
+}
+
+/* CENTER: score + timer */
+.center-col {
+  flex-shrink: 0;
+  width: 34vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5vh;
+  padding: 2vh 1vw;
+  border-left: 1px solid #1a1a1a;
+  border-right: 1px solid #1a1a1a;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+}
+
+.score-num {
+  font-size: 18vw;
+  font-weight: 900;
+  line-height: 1;
+  color: white;
+  min-width: 10vw;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-sep {
+  font-size: 10vw;
+  color: #333;
+  font-weight: 200;
+  line-height: 1;
+}
+
+.timer-display {
+  font-size: 7vw;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 3px;
+  color: white;
+  transition: color .3s;
+  line-height: 1;
+}
+.timer-display.warning { color: #ff9500; }
+.timer-display.danger  { color: #ff3b30; animation: blink .5s infinite; }
+.timer-display.golden  { color: #FFD700; animation: blink .8s infinite; }
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.golden-label {
+  font-size: 2.8vw;
+  font-weight: 900;
+  color: #FFD700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  display: none;
+  animation: blink .8s infinite;
+  text-align: center;
+}
+.golden-label.visible { display: block; }
+
+.phase-badge {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 20px;
+  padding: 0.5vh 2vw;
+  font-size: 1.4vh;
+  font-weight: 700;
+  color: #8e8e93;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* TIMER CONTROLS */
+.timer-controls {
+  display: flex;
+  gap: 1vw;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ctrl-btn {
+  padding: 1vh 2.5vw;
+  font-size: 1.8vh;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform .1s;
+  white-space: nowrap;
+}
+.ctrl-btn:active { transform: scale(.95); }
+.btn-start  { background: #34c759; color: white; }
+.btn-pause  { background: #ff9500; color: white; }
+.btn-reset  { background: #3a3a3c; color: white; }
+.btn-golden { background: #FFD700; color: #1c1c1e; display: none; }
+
+/* WAITING */
+.waiting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+  background: #0a0a0a;
+  z-index: 10;
+}
+.waiting.hidden { display: none; }
+.waiting-icon { font-size: 8vw; }
+.waiting-text { font-size: 3vw; font-weight: 300; color: #555; }
+.waiting-sub  { font-size: 1.5vw; color: #333; }
+
+/* FOOTER */
+.tv-footer {
+  background: #111;
+  padding: 0.8vh 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #1a1a1a;
+  flex-shrink: 0;
+  height: 5vh;
+}
+.footer-hint { font-size: 1.3vh; color: #444; }
+.footer-logo { font-size: 1.3vh; color: #333; }
+</style>
+</head>
+<body>
+
+<!-- WAITING STATE -->
+<div class="waiting" id="waiting-state">
+  <div class="waiting-icon">⚽</div>
+  <div class="waiting-text">In attesa della prossima partita…</div>
+  <div class="waiting-sub">L'admin avvierà la partita a breve</div>
+</div>
+
+<!-- HEADER -->
+<div class="tv-header">
+  <div>
+    <div class="tv-title">🍤 Torneo Frittogether!</div>
+    <div class="tv-phase" id="tv-phase">—</div>
+  </div>
+  <div class="sync-text"><span class="live-dot"></span><span id="tv-sync-text">Connessione…</span></div>
+</div>
+
+<!-- MAIN 16:9 -->
+<div class="tv-main">
+
+  <!-- HOME TEAM -->
+  <div class="team-side">
+    <div class="team-circle" id="color-h"></div>
+    <div class="team-name" id="name-h">—</div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-col">
+    <div class="phase-badge" id="phase-badge">—</div>
+    <div class="score-row">
+      <div class="score-num" id="score-h">0</div>
+      <div class="score-sep">:</div>
+      <div class="score-num" id="score-a">0</div>
+    </div>
+    <div class="golden-label" id="golden-label">⚡ Golden Gol ⚡</div>
+    <div class="timer-display" id="timer-display">10:00</div>
+    <div class="timer-controls">
+      <button class="ctrl-btn btn-reset" onclick="resetTimer()">↺ Reset</button>
+      <button class="ctrl-btn btn-start" id="btn-startstop" onclick="toggleTimer()">▶ Avvia</button>
+      <button class="ctrl-btn btn-golden" id="btn-golden" onclick="startGoldenGol()">⚡ Golden Gol</button>
+    </div>
+  </div>
+
+  <!-- AWAY TEAM -->
+  <div class="team-side">
+    <div class="team-circle" id="color-a"></div>
+    <div class="team-name" id="name-a">—</div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="tv-footer">
+  <div class="footer-hint">Premi ▶ Avvia per il countdown · Golden Gol appare automaticamente in caso di pareggio</div>
+  <div class="footer-logo">Torneo Frittogether 2026</div>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbz2DxkjhANaxGISmLUOU1dMEKu-I6rEUWPjNz0R6QX2VHIWvagGs4uY61NA0lO3Pxxg/exec";
+
+const TEAMS  = {A:"I Frittelloni",B:"Gamberetti Dorati",C:"Olio Bollente FC",D:"Pagelle in Pastella",E:"I Calamari Scatenati",F:"I Paranza"};
+const COLORS = {A:"#56CCF2",B:"#F5A623",C:"#EF4444",D:"#A855F7",E:"#39FF14",F:"#222222"};
+const MATCH_DEFS = [
+  {id:"m1",g:"g1",h:"A",a:"B"},{id:"m2",g:"g1",h:"B",a:"C"},{id:"m3",g:"g1",h:"A",a:"C"},
+  {id:"m4",g:"g2",h:"D",a:"E"},{id:"m5",g:"g2",h:"E",a:"F"},{id:"m6",g:"g2",h:"D",a:"F"},
+  {id:"m7",g:"sf",h:"sf1h",a:"sf1a"},{id:"m8",g:"sf",h:"sf2h",a:"sf2a"},
+  {id:"m9",g:"fi",h:"fi5h",a:"fi5a"},{id:"m10",g:"fi",h:"fi3h",a:"fi3a"},{id:"m11",g:"fi",h:"fih",a:"fia"}
+];
+const GROUP_LABELS = {g1:"Girone 1",g2:"Girone 2",sf:"Semifinale",fi:"Finale"};
+
+let scores={}, played={}, currentMatch=null;
+let timerSecs=600, timerRunning=false, isGoldenGol=false;
+let timerInterval=null;
+
+/* ---- TIMER ---- */
+function fmt(s){ const m=Math.floor(Math.abs(s)/60),ss=Math.abs(s)%60; return `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`; }
+
+function updateTimerEl(){
+  const el=document.getElementById("timer-display");
+  el.textContent=fmt(timerSecs);
+  el.className="timer-display";
+  if(isGoldenGol) el.classList.add("golden");
+  else if(timerSecs<=0) el.classList.add("danger");
+  else if(timerSecs<=60) el.classList.add("warning");
+}
+
+function toggleTimer(){
+  timerRunning ? pauseTimer() : startTimer();
+}
+
+function startTimer(){
+  if(timerRunning) return;
+  timerRunning=true;
+  document.getElementById("btn-startstop").textContent="⏸ Pausa";
+  document.getElementById("btn-startstop").className="ctrl-btn btn-pause";
+  timerInterval=setInterval(()=>{
+    timerSecs--;
+    updateTimerEl();
+    if(!isGoldenGol && timerSecs<=0){
+      const sh=scores[currentMatch+"-h"]||0, sa=scores[currentMatch+"-a"]||0;
+      pauseTimer();
+      if(sh===sa) document.getElementById("btn-golden").style.display="block";
+    }
+    if(isGoldenGol && timerSecs<=0) pauseTimer();
+  },1000);
+}
+
+function pauseTimer(){
+  clearInterval(timerInterval);
+  timerRunning=false;
+  document.getElementById("btn-startstop").textContent="▶ Riprendi";
+  document.getElementById("btn-startstop").className="ctrl-btn btn-start";
+}
+
+function resetTimer(){
+  pauseTimer();
+  isGoldenGol=false;
+  timerSecs=600;
+  document.getElementById("golden-label").classList.remove("visible");
+  document.getElementById("btn-golden").style.display="none";
+  document.getElementById("btn-startstop").textContent="▶ Avvia";
+  document.getElementById("btn-startstop").className="ctrl-btn btn-start";
+  updateTimerEl();
+}
+
+function startGoldenGol(){
+  isGoldenGol=true;
+  timerSecs=180;
+  document.getElementById("golden-label").classList.add("visible");
+  document.getElementById("btn-golden").style.display="none";
+  updateTimerEl();
+  startTimer();
+}
+
+/* ---- DATA ---- */
+function calcStandings(group){
+  const teams=group==="g1"?["A","B","C"]:["D","E","F"];
+  const st={};
+  teams.forEach(t=>st[t]={pt:0,gf:0,gs:0,played:0});
+  MATCH_DEFS.filter(m=>m.g===group).forEach(m=>{
+    if(!played[m.id])return;
+    const h=scores[m.id+"-h"]||0,a=scores[m.id+"-a"]||0;
+    st[m.h].gf+=h;st[m.h].gs+=a;st[m.h].played++;
+    st[m.a].gf+=a;st[m.a].gs+=h;st[m.a].played++;
+    if(h>a)st[m.h].pt+=3;else if(a>h)st[m.a].pt+=3;else{st[m.h].pt++;st[m.a].pt++;}
+  });
+  return Object.entries(st).map(([k,v])=>({id:k,...v,diff:v.gf-v.gs})).sort((a,b)=>b.pt-a.pt||(b.diff-a.diff)||(b.gf-a.gf));
+}
+
+function getSFKeys(){
+  const g1done=MATCH_DEFS.filter(m=>m.g==="g1").every(m=>played[m.id]);
+  const g2done=MATCH_DEFS.filter(m=>m.g==="g2").every(m=>played[m.id]);
+  if(!g1done||!g2done)return null;
+  const t1=calcStandings("g1").map(r=>r.id);
+  const t2=calcStandings("g2").map(r=>r.id);
+  return {sf1h:t1[0],sf1a:t2[1],sf2h:t2[0],sf2a:t1[1],fi5h:t1[2],fi5a:t2[2]};
+}
+
+function resolveKey(key,sfKeys){
+  if(TEAMS[key])return key;
+  if(sfKeys&&sfKeys[key])return sfKeys[key];
+  return null;
+}
+
+function updateDisplay(){
+  const waiting=document.getElementById("waiting-state");
+  if(!currentMatch){
+    waiting.classList.remove("hidden");
+    return;
+  }
+  waiting.classList.add("hidden");
+
+  const def=MATCH_DEFS.find(m=>m.id===currentMatch);
+  if(!def)return;
+
+  const sfKeys=getSFKeys();
+  const hKey=resolveKey(def.h,sfKeys);
+  const aKey=resolveKey(def.a,sfKeys);
+
+  document.getElementById("name-h").textContent=hKey?TEAMS[hKey]:def.h;
+  document.getElementById("name-a").textContent=aKey?TEAMS[aKey]:def.a;
+  document.getElementById("color-h").style.background=hKey?COLORS[hKey]:"#555";
+  document.getElementById("color-a").style.background=aKey?COLORS[aKey]:"#555";
+
+  const sh=scores[currentMatch+"-h"]!==undefined?scores[currentMatch+"-h"]:0;
+  const sa=scores[currentMatch+"-a"]!==undefined?scores[currentMatch+"-a"]:0;
+  document.getElementById("score-h").textContent=sh;
+  document.getElementById("score-a").textContent=sa;
+
+  const label=GROUP_LABELS[def.g]||def.g;
+  document.getElementById("tv-phase").textContent=label;
+  document.getElementById("phase-badge").textContent=label;
+}
+
+function onData(data){
+  const prev=currentMatch;
+  if(data.scores)scores=data.scores;
+  if(data.played)played=data.played;
+  if(data.currentMatch!==undefined)currentMatch=data.currentMatch;
+  if(prev!==currentMatch)resetTimer();
+  updateDisplay();
+  const now=new Date();
+  document.getElementById("tv-sync-text").textContent=
+    `${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}:${String(now.getSeconds()).padStart(2,"0")}`;
+}
+
+async function fetchData(){
+  try{
+    const res=await fetch(API+"?t="+Date.now());
+    const data=await res.json();
+    onData(data);
+  }catch(e){console.error(e);}
+}
+
+fetchData();
+setInterval(fetchData,10000);
+</script>
+</body>
+</html>
